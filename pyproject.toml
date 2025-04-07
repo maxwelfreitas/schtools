@@ -1,0 +1,14 @@
+[project]
+name = "schtools"
+version = "0.1.0"
+description = "Ferramentas para enriquecimento da base de produtos homologados pela Anatel"
+readme = "README.md"
+authors = [
+    { name = "Maxwel de Souza Freitas", email = "maxwel@maxwelfreitas.com.br" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
