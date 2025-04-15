@@ -49,6 +49,33 @@ def _get_data_home(data_home=None) -> str:
         "annotation_data_home": str(annotation_data_home),
     }
 
+def load_api_credentiails(creds_file: str = None) -> dict:
+    """
+    Load API credentials from a TOML file.
+
+    Parameters
+    ----------
+    creds_file : str, default = None
+        Path to the TOML credentials file. If `None`, the default creds_file
+        is `~/creds.ini`.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the API credentials.
+    """
+
+    if creds_file is None:
+        creds_file = join("~", "creds.ini")
+    creds_file = expanduser(creds_file)
+
+    if not exists(creds_file):
+        raise FileNotFoundError(f"Credentials file not found: {creds_file}")
+    else:
+        with open(creds_file, "rb") as f:
+            creds = tomllib.load(f)
+
+    return creds
 
 def load_config_file(config_file: str = None) -> dict:
     """
@@ -101,5 +128,13 @@ def load_config_file(config_file: str = None) -> dict:
                 )
 
     config["datasets"] = _get_data_home(config.get("datasets", None))
+
+    if credentials := config.get("credentials", None):
+        creds_file = credentials.get("creds_file", None)
+    else:
+        creds_file = None
+    creds = load_api_credentiails(creds_file)
+    config["credentials"] = creds
+
 
     return config
