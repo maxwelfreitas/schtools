@@ -4,8 +4,7 @@ import time
 import warnings
 
 from datetime import datetime
-from os import environ, makedirs
-from os.path import expanduser, join
+from os import makedirs
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from urllib.error import URLError
@@ -17,38 +16,6 @@ REMOTE_SCH_DATASET = {
     "url": "https://www.anatel.gov.br/dadosabertos/paineis_de_dados/certificacao_de_produtos",
     "filename": "produtos_certificados.zip",
 }
-
-
-def _get_data_home(data_home=None) -> str:
-    """Return the path of the data directory.
-
-    By default the data directory is set to a folder named 'sch_database' in the
-    user home folder.
-
-    Alternatively, it can be set by the 'SCH_DATAHOME' environment
-    variable or programmatically by giving an explicit folder path.
-    The '~' symbol is expanded to the user home folder.
-
-    If the folder does not already exist, it is automatically created.
-
-    Parameters
-    ----------
-    data_home : str or path-like, default=None
-        The path to data directory. If `None`, the default path
-        is `%LOCALAPPDATA%/Local/sch_database` or `~/sch_database`.
-
-    Returns
-    -------
-    data_home: path-like
-        The path to data directory.
-
-    """
-    default_data_home = join(os.environ.get("LOCALAPPDATA", "~"), "sch_database")
-    if data_home is None:
-        data_home = environ.get("SCH_DATAHOME", default_data_home)
-    data_home = expanduser(data_home)
-
-    return Path(data_home)
 
 
 def _download_sch_database(
@@ -79,7 +46,7 @@ def _download_sch_database(
     """
 
     makedirs(target_dir, exist_ok=True)
-    sch_file_path = target_dir / REMOTE_SCH_DATASET["filename"]
+    sch_file_path = Path(target_dir) / REMOTE_SCH_DATASET["filename"]
 
     temp_file = NamedTemporaryFile(
         prefix=REMOTE_SCH_DATASET["filename"] + ".part_", dir=target_dir, delete=False
@@ -116,8 +83,7 @@ def _download_sch_database(
 
 
 def fetch_sch_database(
-    *,
-    data_home=None,
+    data_home,
     download_if_missing=True,
     download_grace_period=180,
     force_download=False,
@@ -130,9 +96,8 @@ def fetch_sch_database(
 
     Parameters
     ----------
-    data_home : str or path-like, default = None
-        Specify a download and cache folder for the datasets. If None,
-        all the data is stored in '~/sch_database' subfolder.
+    data_home : str or path-like
+        Specify a download and cache folder for the datasets.
 
     download_if_missing : bool, default=True
         If False, raise an OSError if the data is not locally available
@@ -181,12 +146,8 @@ def fetch_sch_database(
     ==  ===========================================
 
     """
-    if data_home is None:
-        data_home = _get_data_home(data_home=data_home)
-    else:
-        data_home = Path(data_home)
 
-    sch_file_path = data_home / REMOTE_SCH_DATASET["filename"]
+    sch_file_path = Path(data_home) / REMOTE_SCH_DATASET["filename"]
 
     if sch_file_path.exists():
         # Check if the file is older than the grace period
@@ -208,8 +169,12 @@ def fetch_sch_database(
     else:
         if download_if_missing:
             # If the file does not exist and download_if_missing is True, download it
-            print(f"File {sch_file_path} does not exist. Downloading the file...")
+            print(
+                f"File {sch_file_path} does not exist.\nDownloading the file...",
+                end=" ",
+            )
             _download_sch_database(data_home, n_retries=n_retries, delay=delay)
+            print("Download complete.")
         else:
             # If the file does not exist and download_if_missing is False, raise an error
             raise OSError(
@@ -240,5 +205,5 @@ def fetch_sch_database(
 
     # remove rows with null values in the 'Número de Homologação' column
     frame = frame.dropna(subset=["Número de Homologação"])
-    
+
     return frame
